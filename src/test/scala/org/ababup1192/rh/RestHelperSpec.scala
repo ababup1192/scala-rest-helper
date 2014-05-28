@@ -2,11 +2,16 @@ package org.ababup1192.rh
 
 import org.specs2.mutable.Specification
 import play.api.http.Status._
-import org.ababup1192.rh.response.Response
+import org.ababup1192.rh.response.{HasReads, Response}
+import play.api.libs.json.{Reads, Json}
 
 object RestHelperSpec extends Specification {
 
   case class User(id: Int, name: String)
+
+  object User extends HasReads[User] {
+    override def reads: Reads[User] = Json.reads[User]
+  }
 
   "RestHelper" should {
 
@@ -96,6 +101,16 @@ object RestHelperSpec extends Specification {
         case Response(_, Left(jsError)) => jsError.toString
       }
       string mustEqual "get jsString"
+    }
+
+    "JsonObject http get" in {
+      val restHelper = RestHelper("http://localhost:9000/")
+      val response = restHelper.getParseJson[User]("user.json", User)
+      val user = response match {
+        case Response(OK, Right(result: User)) => result
+        case Response(_, Left(jsError)) => User(-1, "failed")
+      }
+      user mustEqual User(1, "abab")
     }
 
   }

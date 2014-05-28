@@ -1,7 +1,6 @@
 package org.ababup1192.rh.response
 
 import play.api.libs.json._
-import play.api.http.Status._
 
 trait HttpMethod
 
@@ -15,9 +14,8 @@ case object Delete extends HttpMethod
 
 case class Response[T](status: Int, body: T)
 
-
-trait HasUnapply[T] {
-  def unapply(t: T): Option[T]
+trait HasReads[T] {
+  def reads: Reads[T]
 }
 
 /*
