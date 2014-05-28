@@ -16,7 +16,7 @@ ScalaからREST APIを叩くときに、便利にしたい。返ってくるレ�
     
     val restHelper = RestHelper("http://localhost:9000/")           
     val response = restHelper.getParseJson[Boolean]("bool.json")    // ジェネリクスで欲しい戻り値の型を指定
-    val string = response match {                                   
+    val bool = response match {                                   
         case Response(OK, Right(result: Boolean)) => result         // Eitherで指定した型でパターンマッチ
         case Response(_, Left(jsError)) => false                    // 失敗した場合は、jsErrorが返される
     }
