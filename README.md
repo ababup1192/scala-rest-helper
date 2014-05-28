@@ -20,3 +20,17 @@ ScalaからREST APIを叩くときに、便利にしたい。返ってくるレ�
         case Response(OK, Right(result: Boolean)) => result         // Eitherで指定した型でパターンマッチ
         case Response(_, Left(jsError)) => false                    // 失敗した場合は、jsErrorが返される
     }
+
+## JsonValueをcase classに変換して返してくれる例
+
+    case class User(id: Int, name: String)                          // コンパニオンオブジェクトを用意
+    object User extends HasReads[User] {
+        override def reads: Reads[User] = Json.reads[User]          // HasReads[ケースクラス] をミックスイン
+    }                                                               // そして、readsメソッドをオーバーライド
+    val restHelper = RestHelper("http://localhost:9000/")
+    val response = restHelper.getParseJson[User]("user.json", User) // 上で用意したケースクラスをジェネリクスで指定
+    val user = response match {
+        case Response(OK, Right(result: User)) => result            // パターンマッチで取得
+        case Response(_, Left(jsError)) => User(-1, "failed")
+    }
+    
