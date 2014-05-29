@@ -2,8 +2,9 @@ package org.ababup1192.rh
 
 import org.specs2.mutable.Specification
 import play.api.http.Status._
-import org.ababup1192.rh.response.{HasReads, Response}
 import play.api.libs.json.{Reads, Json}
+import org.ababup1192.rh.json.Json._
+import org.ababup1192.rh.response.HttpResponse.Response
 
 object RestHelperSpec extends Specification {
 
@@ -11,6 +12,12 @@ object RestHelperSpec extends Specification {
 
   object User extends HasReads[User] {
     override def reads: Reads[User] = Json.reads[User]
+  }
+
+  case class JsonError(code: Int, name: String, description: String)
+
+  object JsonError extends HasReads[JsonError] {
+    override def reads: Reads[JsonError] = Json.reads[JsonError]
   }
 
   "RestHelper" should {
@@ -113,5 +120,30 @@ object RestHelperSpec extends Specification {
       user mustEqual User(1, "abab")
     }
 
+    /*
+
+    "Multiple Request http get" in {
+      val restHelper = RestHelper("http://localhost:9000/")
+      val response = restHelper.getParseJson("user.json",
+        List(OkRequest[User](User)))
+      val user = response match {
+        case Response(OK, Right(result: User)) => result
+        case Response(_, Left(jsError)) => User(-1, "failed")
+      }
+      user mustEqual User(1, "abab")
+    }
+
+    "Multiple Request http get faled case" in {
+      val restHelper = RestHelper("http://localhost:9000/")
+      val response = restHelper.getParseJson("user.json/bad",
+        List(OkRequest[User](User), BadRequest[JsonError](JsonError)))
+      val error = response match {
+        case Response(OK, Right(result: User)) => result
+        case Response(BAD_REQUEST, Right(result: JsonError)) => result
+        case Response(_, Left(jsError)) => User(-1, "failed")
+      }
+      error mustEqual JsonError(1, "ID NotFound", "User's id not found")
+    }
+    */
   }
 }

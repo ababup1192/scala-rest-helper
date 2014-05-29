@@ -1,14 +1,12 @@
 package org.ababup1192.rh
 
-import org.ababup1192.rh.response._
 import play.api.libs.ws.WS
 import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import play.api.libs.json._
-import org.ababup1192.rh.response.Put
-import org.ababup1192.rh.response.Post
-import org.ababup1192.rh.response.Response
 import scala.reflect.ClassTag
+import org.ababup1192.rh.json.Json.HasReads
+import org.ababup1192.rh.response.HttpResponse._
 
 /**
  * REST HELPER CLASS.
@@ -16,7 +14,7 @@ import scala.reflect.ClassTag
  */
 case class RestHelper(pDomain: String) {
 
-  private def httpRequest(uri: String, httpMethod: HttpMethod): Response[String] = {
+  protected def httpRequest(uri: String, httpMethod: HttpMethod): Response[String] = {
     val result = httpMethod match {
       case Get => Await.result(WS.url(uri).get(), Duration.Inf)
       case Post(body: String) => Await.result(WS.url(uri).post(body), Duration.Inf)
@@ -27,31 +25,31 @@ case class RestHelper(pDomain: String) {
   }
 
   // TODO: Implicit class
-  private def jsonToBoolean(jsonValue: JsValue): Product = {
+  private final def jsonToBoolean(jsonValue: JsValue): Product = {
     jsonValue.validate[Boolean].map { value: Boolean => Right(value)}
       .recoverTotal { jsonError: JsError => Left(jsonError)
     }
   }
 
-  private def jsonToInt(jsonValue: JsValue): Product = {
+  private final def jsonToInt(jsonValue: JsValue): Product = {
     jsonValue.validate[Int].map { value: Int => Right(value)}
       .recoverTotal { jsonError: JsError => Left(jsonError)
     }
   }
 
-  private def jsonToLong(jsonValue: JsValue): Product = {
+  private final def jsonToLong(jsonValue: JsValue): Product = {
     jsonValue.validate[Long].map { value: Long => Right(value)}
       .recoverTotal { jsonError: JsError => Left(jsonError)
     }
   }
 
-  private def jsonToDouble(jsonValue: JsValue): Product = {
+  private final def jsonToDouble(jsonValue: JsValue): Product = {
     jsonValue.validate[Double].map { value: Double => Right(value)}
       .recoverTotal { jsonError: JsError => Left(jsonError)
     }
   }
 
-  private def jsonToString(jsonValue: JsValue): Product = {
+  private final def jsonToString(jsonValue: JsValue): Product = {
     jsonValue.validate[String].map { value: String => Right(value)}
       .recoverTotal { jsonError: JsError => Left(jsonError)
     }
@@ -63,7 +61,7 @@ case class RestHelper(pDomain: String) {
    * @tparam T T is expected scala value type. String, Bool, Long, Int, Array, Object ...
    * @return Response(HTTP_STATUS: Int, Either[JsError, T]
    */
-  private def jsonToScalaValue[T: ClassTag](response: Response[String]): Response[Product] = {
+  private final def jsonToScalaValue[T: ClassTag](response: Response[String]): Response[Product] = {
     val jsonValue: JsValue = Json.parse(response.body)
 
     val t = implicitly[ClassTag[T]].runtimeClass
@@ -93,7 +91,7 @@ case class RestHelper(pDomain: String) {
    * @tparam T expected Scala value. Case class or mix-in HasReads Object.
    * @return Response(HTTP_STATUS: Int, HTTP_BODY: T)
    */
-  private def jsonToScalaValue[T](response: Response[String], hasReads: HasReads[T]): Response[Product] = {
+  protected def jsonToScalaValue[T](response: Response[String], hasReads: HasReads[T]): Response[Product] = {
     val jsonValue: JsValue = Json.parse(response.body)
 
     implicit val jsonReads = hasReads.reads
@@ -107,6 +105,7 @@ case class RestHelper(pDomain: String) {
 
     Response(response.status, result)
   }
+
 
   /**
    * HTTP GET Request.
@@ -130,8 +129,18 @@ case class RestHelper(pDomain: String) {
    * @tparam T T is expected scala value type. Bool, Int, Long, Double, Array String ...
    * @return Response(HTTP_STATUS: Int, Either[JsError, T]
    */
-  def getParseJson[T: ClassTag] = {
+  def getParseJson[T: ClassTag]: Response[Product] = {
     jsonToScalaValue[T](get())
+  }
+
+
+  /**
+   *
+   * @tparam T T is expected scala value type. Bool, Int, Long, Double, Array String ...
+   * @return Response(HTTP_STATUS: Int, Either[JsError, T]
+   */
+  def getParseJson[T: ClassTag](path: String) = {
+    jsonToScalaValue[T](get(path))
   }
 
   /**
@@ -155,14 +164,6 @@ case class RestHelper(pDomain: String) {
     jsonToScalaValue[T](get(path), hasReads)
   }
 
-  /**
-   *
-   * @tparam T T is expected scala value type. Bool, Int, Long, Double, Array String ...
-   * @return Response(HTTP_STATUS: Int, Either[JsError, T]
-   */
-  def getParseJson[T: ClassTag](path: String) = {
-    jsonToScalaValue[T](get(path))
-  }
 
   /**
    * HTTP POST Request.
@@ -215,6 +216,35 @@ case class RestHelper(pDomain: String) {
     httpRequest(pDomain + path, Delete)
   }
 
+  /*
+   def getParseJson(requestList: Seq[Request]) = {
+     requestsToResponses(get(), requestList)
+   }
+
+   def getParseJson(path: String, requestList: Seq[Request]) = {
+     requestsToResponses(get(path), requestList)
+   }
+   */
+
+  /*
+ private def requestsToResponses(response: Response[String], requestList: Seq[Request]) = {
+   val requests = requestList.map { request =>
+
+
+     val t = implicitly[ClassTag[request.U]].runtimeClass
+
+     request match {
+       case request: JsonRequest[U] => jsonToScalaValue[U](response, request.hasReads)
+       case _ => Left(JsError("Failed"))
+     }
+   }
+
+   requests.filter {
+     case Response(_, Right(_)) => true
+   }.head
+
+  }
+ */
 
   /*
   /**
