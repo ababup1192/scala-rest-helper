@@ -1,8 +1,9 @@
 package org.ababup1192.rh.response
 
-import org.ababup1192.rh.json.Json.HasReads
+import org.ababup1192.rh.json.Json.{JsonWritable, HasReads}
 import scala.reflect.ClassTag
 import scala.reflect.runtime.universe._
+import play.api.libs.json.JsValue
 
 object HttpResponse {
 
@@ -10,9 +11,9 @@ object HttpResponse {
 
   case object Get extends HttpMethod
 
-  case class Post(body: String) extends HttpMethod
+  case class Post(body: JsonWritable) extends HttpMethod
 
-  case class Put(body: String) extends HttpMethod
+  case class Put(body: JsonWritable) extends HttpMethod
 
   case object Delete extends HttpMethod
 

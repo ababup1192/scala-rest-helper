@@ -2,16 +2,27 @@ package org.ababup1192.rh
 
 import org.specs2.mutable.Specification
 import play.api.http.Status._
-import play.api.libs.json.{Reads, Json}
+import play.api.libs.json.{Format, Json, JsValue, Reads}
 import org.ababup1192.rh.json.Json._
 import org.ababup1192.rh.response.HttpResponse.Response
 
 object RestHelperSpec extends Specification {
 
-  case class User(id: Int, name: String)
+  case class User(id: Long, name: String) extends JsonWritable {
+    /**
+     * Require toJson method.
+     * And implements as follows
+     * implicit val jsonWrites = [Companion Object].writes or format
+     * [PlayJson].toJson(this)
+     */
+    override def toJson: JsValue = {
+      implicit val jsonWrites = User.format
+      Json.toJson(this)
+    }
+  }
 
-  object User extends HasReads[User] {
-    override def reads: Reads[User] = Json.reads[User]
+  object User extends HasFormat[User] {
+    override def format: Format[User] = Json.format[User]
   }
 
   case class JsonError(code: Int, name: String, description: String)
@@ -32,24 +43,24 @@ object RestHelperSpec extends Specification {
       string mustEqual "get"
     }
 
-    "String http post" in {
+    "User http post" in {
       val restHelper = RestHelper("http://localhost:9000/")
-      val response = restHelper.post("string")
-      val string = response match {
-        case Response(OK, string: String) => string
-        case _ => "failed"
+      val response = restHelper.post("user", User(1, "abab"))
+      val isOk = response match {
+        case Response(CREATED, _) => true
+        case _ => false
       }
-      string mustEqual "post"
+      isOk mustEqual true
     }
 
-    "String http put" in {
+    "User http put" in {
       val restHelper = RestHelper("http://localhost:9000/")
-      val response = restHelper.put("string")
-      val string = response match {
-        case Response(OK, string: String) => string
-        case _ => "failed"
+      val response = restHelper.put("user", User(2, "abab"))
+      val isOk = response match {
+        case Response(NO_CONTENT, _) => true
+        case _ => false
       }
-      string mustEqual "put"
+      isOk mustEqual true
     }
 
     "String http delete" in {
@@ -109,41 +120,42 @@ object RestHelperSpec extends Specification {
       }
       string mustEqual "get jsString"
     }
-
-    "JsonObject http get" in {
-      val restHelper = RestHelper("http://localhost:9000/")
-      val response = restHelper.getParseJson[User]("user.json", User)
-      val user = response match {
-        case Response(OK, Right(result: User)) => result
-        case Response(_, Left(jsError)) => User(-1, "failed")
-      }
-      user mustEqual User(1, "abab")
-    }
-
-    /*
-
-    "Multiple Request http get" in {
-      val restHelper = RestHelper("http://localhost:9000/")
-      val response = restHelper.getParseJson("user.json",
-        List(OkRequest[User](User)))
-      val user = response match {
-        case Response(OK, Right(result: User)) => result
-        case Response(_, Left(jsError)) => User(-1, "failed")
-      }
-      user mustEqual User(1, "abab")
-    }
-
-    "Multiple Request http get faled case" in {
-      val restHelper = RestHelper("http://localhost:9000/")
-      val response = restHelper.getParseJson("user.json/bad",
-        List(OkRequest[User](User), BadRequest[JsonError](JsonError)))
-      val error = response match {
-        case Response(OK, Right(result: User)) => result
-        case Response(BAD_REQUEST, Right(result: JsonError)) => result
-        case Response(_, Left(jsError)) => User(-1, "failed")
-      }
-      error mustEqual JsonError(1, "ID NotFound", "User's id not found")
-    }
-    */
   }
 }
+
+/*
+"JsonObject http get" in {
+  val restHelper = RestHelper("http://localhost:9000/")
+  val response = restHelper.getParseJson[User]("user.json", User)
+  val user = response match {
+    case Response(OK, Right(result: User)) => result
+    case Response(_, Left(jsError)) => User(-1, "failed")
+  }
+  user mustEqual User(1, "abab")
+}
+
+"Multiple Request http get" in {
+  val restHelper = RestHelper("http://localhost:9000/")
+  val response = restHelper.getParseJson("user.json",
+    List(OkRequest[User](User)))
+  val user = response match {
+    case Response(OK, Right(result: User)) => result
+    case Response(_, Left(jsError)) => User(-1, "failed")
+  }
+  user mustEqual User(1, "abab")
+}
+
+"Multiple Request http get faled case" in {
+  val restHelper = RestHelper("http://localhost:9000/")
+  val response = restHelper.getParseJson("user.json/bad",
+    List(OkRequest[User](User), BadRequest[JsonError](JsonError)))
+  val error = response match {
+    case Response(OK, Right(result: User)) => result
+    case Response(BAD_REQUEST, Right(result: JsonError)) => result
+    case Response(_, Left(jsError)) => User(-1, "failed")
+  }
+  error mustEqual JsonError(1, "ID NotFound", "User's id not found")
+}
+}
+}
+*/
