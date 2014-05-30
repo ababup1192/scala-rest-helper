@@ -5,7 +5,7 @@ import scala.concurrent.Await
 import scala.concurrent.duration.Duration
 import play.api.libs.json._
 import scala.reflect.ClassTag
-import org.ababup1192.rh.json.Json.HasReads
+import org.ababup1192.rh.json.Json.{JsonWritable, HasReads}
 import org.ababup1192.rh.response.HttpResponse._
 
 /**
@@ -17,8 +17,8 @@ case class RestHelper(pDomain: String) {
   protected def httpRequest(uri: String, httpMethod: HttpMethod): Response[String] = {
     val result = httpMethod match {
       case Get => Await.result(WS.url(uri).get(), Duration.Inf)
-      case Post(body: String) => Await.result(WS.url(uri).post(body), Duration.Inf)
-      case Put(body: String) => Await.result(WS.url(uri).put(body), Duration.Inf)
+      case Post(body: JsonWritable) => Await.result(WS.url(uri).post(body.toJson), Duration.Inf)
+      case Put(body: JsonWritable) => Await.result(WS.url(uri).put(body.toJson), Duration.Inf)
       case Delete => Await.result(WS.url(uri).delete(), Duration.Inf)
     }
     Response(result.status, result.body)
@@ -91,7 +91,7 @@ case class RestHelper(pDomain: String) {
    * @tparam T expected Scala value. Case class or mix-in HasReads Object.
    * @return Response(HTTP_STATUS: Int, HTTP_BODY: T)
    */
-  protected def jsonToScalaValue[T](response: Response[String], hasReads: HasReads[T]): Response[Product] = {
+  def jsonToScalaValue[T](response: Response[String], hasReads: HasReads[T]): Response[Product] = {
     val jsonValue: JsValue = Json.parse(response.body)
 
     implicit val jsonReads = hasReads.reads
@@ -169,16 +169,34 @@ case class RestHelper(pDomain: String) {
    * HTTP POST Request.
    * @return Response(HTTP_STATUS: Int, HTTP_BODY: String)
    */
-  def post(): Response[String] = {
-    httpRequest(pDomain, Post(new String))
+  def post(jsonWritable: JsonWritable): Response[String] = {
+    httpRequest(pDomain, Post(jsonWritable))
+  }
+
+  /**
+   * HTTP POST Request.
+   * @param path example: "user"
+   * @return Response(HTTP_STATUS: Int, HTTP_BODY: String)
+   */
+  def post(path: String, jsonWritable: JsonWritable): Response[String] = {
+    httpRequest(pDomain + path, Post(jsonWritable))
   }
 
   /**
    * HTTP PUT Request.
    * @return Response(HTTP_STATUS: Int, HTTP_BODY: String)
    */
-  def put(): Response[String] = {
-    httpRequest(pDomain, Put(new String))
+  def put(jsonWritable: JsonWritable): Response[String] = {
+    httpRequest(pDomain, Put(jsonWritable))
+  }
+
+  /**
+   * HTTP PUT Request.
+   * @param path example: "user/:id"
+   * @return Response(HTTP_STATUS: Int, HTTP_BODY: String)
+   */
+  def put(path: String, jsonWritable: JsonWritable): Response[String] = {
+    httpRequest(pDomain + path, Put(jsonWritable))
   }
 
   /**
@@ -187,24 +205,6 @@ case class RestHelper(pDomain: String) {
    */
   def delete(): Response[String] = {
     httpRequest(pDomain, Delete)
-  }
-
-  /**
-   * HTTP POST Request.
-   * @param path example: "user"
-   * @return Response(HTTP_STATUS: Int, HTTP_BODY: String)
-   */
-  def post(path: String): Response[String] = {
-    httpRequest(pDomain + path, Post(new String))
-  }
-
-  /**
-   * HTTP PUT Request.
-   * @param path example: "user/:id"
-   * @return Response(HTTP_STATUS: Int, HTTP_BODY: String)
-   */
-  def put(path: String): Response[String] = {
-    httpRequest(pDomain + path, Put(new String))
   }
 
   /**
